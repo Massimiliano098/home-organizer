@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>HOME ORGANIZER</title>
 
@@ -821,10 +821,51 @@
             }
         }
 
-    
-/* FIT SCREEN LANDSCAPE */
-html,body{width:100%;height:100%;overflow:hidden}body{overscroll-behavior:none}.app{max-width:none;height:100dvh;min-height:100vh;padding:clamp(6px,1.2vh,14px);display:flex;flex-direction:column;overflow:hidden}header{flex:0 0 auto;margin-bottom:clamp(5px,1vh,11px)}.dashboard{flex:1 1 auto;min-height:0;height:100%;grid-template-columns:minmax(0,.86fr) minmax(0,1.55fr);grid-template-rows:minmax(0,1.12fr) minmax(0,.88fr);gap:clamp(7px,1vh,12px);overflow:hidden}.panel{min-height:0!important;padding:clamp(8px,1.4vh,15px);overflow:hidden}.panel-header{margin-bottom:clamp(5px,.8vh,10px)}.budget-panel{grid-row:1/3;display:flex;flex-direction:column}.budget-chart-container{flex:1 1 auto;min-height:0}.budget-summary{flex:0 0 auto;margin-top:3px;padding-top:7px}.budget-section-list{max-height:22vh;overflow-y:auto;gap:4px;margin-top:7px}.budget-section-row{padding:6px 8px}.calendar{min-height:0!important;display:flex;flex-direction:column}.calendar-weekdays{flex:0 0 auto;margin-bottom:2px}.calendar-weekdays,.calendar-grid{gap:clamp(2px,.45vh,4px)}.weekday{padding:1px;font-size:clamp(7px,1vh,9px)}.calendar-grid{flex:1 1 auto;min-height:0;grid-template-rows:repeat(6,minmax(0,1fr))}.calendar-day{min-height:0!important;height:auto;padding:clamp(2px,.45vh,5px)}.calendar-day-number{font-size:clamp(8px,1.15vh,10px)}.calendar-day-details,.calendar-details{flex:0 0 auto;max-height:10vh;overflow-y:auto;margin-top:4px!important;padding:5px!important}.tasks{min-height:0!important;display:flex;flex-direction:column}.tasks .panel-header{flex:0 0 auto}.tasks-list{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;gap:5px;padding-right:2px}.task{padding:clamp(6px,.9vh,9px);gap:8px}.task-title{font-size:clamp(10px,1.35vh,12px)}.task-meta{gap:4px;margin-top:2px;font-size:clamp(7px,1.05vh,9px)}.voice-row{flex:0 0 auto;margin-top:5px}.voice-button{width:clamp(38px,5.8vh,49px);height:clamp(38px,5.8vh,49px);font-size:clamp(16px,2.5vh,20px)}.tasks-list,.budget-section-list,.calendar-day-details,.calendar-details{scrollbar-width:thin}@media(max-width:950px) and (orientation:landscape){.dashboard{grid-template-columns:minmax(0,.82fr) minmax(0,1.62fr);grid-template-rows:minmax(0,1.12fr) minmax(0,.88fr)}.budget-panel{grid-row:1/3}.panel{padding:8px}}@media(max-height:650px) and (orientation:landscape){.app{padding:6px}header{margin-bottom:5px}.brand p,.panel-subtitle{display:none}.panel{padding:7px}.panel-header{margin-bottom:4px}.budget-section-list{max-height:18vh}.calendar-day-details,.calendar-details{max-height:8vh}}
+    </style>
+
+<style id="responsive-phone-layout">
+.portrait-lock { display:none !important; }
+
+@media (max-width:600px) and (orientation:portrait) {
+  html,body { width:100%; min-height:100%; overflow-x:hidden; overflow-y:auto; }
+  body { overscroll-behavior-y:auto; }
+  .app { display:block !important; width:100%; min-height:100dvh; height:auto; padding:10px; overflow:visible; }
+  header { align-items:center; margin-bottom:10px; }
+  .brand h1 { font-size:19px; }
+  .brand p { display:none; }
+  .connection { font-size:10px; }
+
+  .dashboard { display:flex; flex-direction:column; gap:10px; height:auto; overflow:visible; }
+
+  /* Prima: impegni, con pannello vocale sopra la lista */
+  .tasks { order:1; min-height:0 !important; display:flex; flex-direction:column; }
+  .tasks .panel-header { order:1; margin-bottom:7px; }
+  .tasks .voice-row {
+    order:2; margin:0 0 9px 0; padding:10px;
+    border:1px solid var(--border); border-radius:12px; background:var(--panel-2);
+  }
+  .tasks .tasks-list { order:3; max-height:42dvh; overflow-y:auto; padding-right:2px; }
+  .voice-button { width:54px; height:54px; flex:0 0 54px; font-size:22px; }
+  .ai-status { font-size:11px; line-height:1.35; }
+
+  /* Secondo: calendario */
+  .calendar { order:2; min-height:0 !important; }
+  .calendar-day { min-height:42px; padding:5px; }
+  .calendar-day-details { max-height:150px; overflow-y:auto; }
+
+  /* Terzo: budget/torta */
+  .budget-panel { order:3; grid-row:auto; min-height:0 !important; }
+  .budget-chart-container { min-height:250px; }
+  #budgetChart { width:min(72vw,290px); height:min(72vw,290px); }
+  .budget-section-list { max-height:none; overflow:visible; }
+
+  .panel { padding:12px; border-radius:14px; }
+  .panel-title { font-size:15px; }
+  .panel-subtitle { font-size:10px; }
+  .btn { padding:7px 10px; font-size:11px; }
+}
 </style>
+
 </head>
 
 <body>
@@ -4095,18 +4136,7 @@ if ("serviceWorker" in navigator) {
     });
 }
 
-async function tryLandscapeLock() {
-    try {
-        if (screen.orientation && screen.orientation.lock) {
-            await screen.orientation.lock("landscape");
-        }
-    } catch (error) {
-        // Alcuni browser permettono il lock solo in specifici display mode.
-    }
-}
 
-window.addEventListener("load", tryLandscapeLock);
-window.addEventListener("click", tryLandscapeLock, { once: true });
 </script>
 
 </body>

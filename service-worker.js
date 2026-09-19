@@ -1,4 +1,4 @@
-const CACHE_NAME = "home-organizer-v1";
+const CACHE_NAME = "home-organizer-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
