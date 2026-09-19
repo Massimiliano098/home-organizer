@@ -1,0 +1,4016 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>HOME ORGANIZER</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0b0d10;
+            --panel: #13161b;
+            --panel-2: #191d23;
+            --border: #282d35;
+            --text: #f2f4f7;
+            --muted: #8f98a6;
+            --accent: #7c5cff;
+            --accent-hover: #9177ff;
+            --green: #35d07f;
+            --red: #ff5c67;
+            --yellow: #f5c451;
+            --blue: #4da3ff;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .brand h1 {
+            font-size: 28px;
+            letter-spacing: -1px;
+        }
+
+        .brand p {
+            color: var(--muted);
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .connection {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .connection-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--yellow);
+        }
+
+        .connection-dot.online {
+            background: var(--green);
+        }
+
+        .connection-dot.offline {
+            background: var(--red);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1.25fr;
+            gap: 18px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 20px;
+            min-width: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .panel-title {
+            font-size: 19px;
+            font-weight: 700;
+        }
+
+        .panel-subtitle {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: white;
+            background: var(--accent);
+            transition: .15s;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn.secondary {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+        }
+
+        .btn.danger {
+            background: rgba(255, 92, 103, .15);
+            color: #ff7d85;
+        }
+
+        .budget-panel {
+            grid-row: span 2;
+        }
+
+        .budget-chart-container {
+            min-height: 330px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #budgetChart {
+            width: 290px;
+            height: 290px;
+            max-width: 100%;
+        }
+
+        .empty-state {
+            color: var(--muted);
+            text-align: center;
+            padding: 30px 15px;
+        }
+
+        .budget-summary {
+            margin-top: 10px;
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+        }
+
+        .budget-total {
+            font-size: 30px;
+            font-weight: 700;
+        }
+
+        .budget-total-label {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .budget-section-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .budget-section-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--panel-2);
+            border-radius: 10px;
+        }
+
+        .budget-section-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .budget-section-value {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .section-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .calendar {
+            min-height: 470px;
+        }
+
+        .calendar-navigation {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calendar-navigation button {
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--border);
+            background: var(--panel-2);
+            color: white;
+            border-radius: 8px;
+        }
+
+        .calendar-month {
+            min-width: 150px;
+            text-align: center;
+            font-weight: 700;
+            text-transform: capitalize;
+        }
+
+        .calendar-weekdays,
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+
+        .calendar-weekdays {
+            margin-bottom: 6px;
+        }
+
+        .weekday {
+            text-align: center;
+            color: var(--muted);
+            font-size: 11px;
+            padding: 5px;
+        }
+
+        .calendar-day {
+            min-height: 62px;
+            border: 1px solid var(--border);
+            background: var(--panel-2);
+            border-radius: 9px;
+            padding: 7px;
+            cursor: pointer;
+            position: relative;
+            transition: .15s;
+        }
+
+        .calendar-day:hover {
+            border-color: var(--accent);
+        }
+
+        .calendar-day.other-month {
+            opacity: .3;
+        }
+
+        .calendar-day.today {
+            border-color: var(--accent);
+        }
+
+        .calendar-day-number {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .calendar-event-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            margin-top: 7px;
+        }
+
+        .calendar-event-count {
+            position: absolute;
+            bottom: 5px;
+            right: 6px;
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .tasks {
+            min-height: 330px;
+        }
+
+        .tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            max-height: 430px;
+            overflow-y: auto;
+        }
+
+        .task {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .task.overdue {
+            border-color: rgba(255, 92, 103, .45);
+        }
+
+        .task-check {
+            width: 23px;
+            height: 23px;
+            border-radius: 7px;
+            border: 1px solid #4a505a;
+            background: transparent;
+            flex-shrink: 0;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-check:hover {
+            border-color: var(--green);
+        }
+
+        .task-content {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .task-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            color: var(--muted);
+            font-size: 11px;
+            margin-top: 5px;
+        }
+
+        .task-amount {
+            color: var(--yellow);
+        }
+
+        .task-overdue {
+            color: var(--red);
+        }
+
+        .tasks-section {
+            margin-bottom: 18px;
+        }
+
+        .tasks-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .tasks-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 4px 2px 9px;
+        }
+
+        .tasks-section-title {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        .tasks-section-count {
+            min-width: 24px;
+            height: 24px;
+            padding: 0 7px;
+            border-radius: 999px;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .tasks-section-list {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        .tasks-section.future-section {
+            opacity: .58;
+        }
+
+        .task.today-task {
+            border-color: rgba(124, 92, 255, .55);
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+
+        .task.future {
+            background: rgba(25, 29, 35, .72);
+        }
+
+        .task.completed {
+            opacity: .52;
+        }
+
+        .task.completed .task-title {
+            text-decoration: line-through;
+        }
+
+        .task-check.completed-check {
+            border-color: rgba(53, 208, 127, .45);
+            background: rgba(53, 208, 127, .12);
+            color: var(--green);
+            cursor: default;
+        }
+
+        .task-completed {
+            color: var(--green);
+        }
+
+        .calendar-day.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(124, 92, 255, .55);
+        }
+
+        .calendar-day-details {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+
+        .calendar-details-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 9px;
+        }
+
+        .calendar-details-list {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            max-height: 145px;
+            overflow-y: auto;
+        }
+
+        .calendar-detail-task {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 9px;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .calendar-detail-task.completed {
+            opacity: .48;
+        }
+
+        .calendar-detail-main {
+            min-width: 0;
+        }
+
+        .calendar-detail-name {
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .calendar-detail-meta {
+            color: var(--muted);
+            margin-top: 3px;
+            font-size: 10px;
+        }
+
+        .calendar-detail-status {
+            flex-shrink: 0;
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .voice-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .ai-status {
+            flex: 1;
+            min-width: 0;
+            color: var(--muted);
+            font-size: 12px;
+            text-align: right;
+            line-height: 1.4;
+        }
+
+        .ai-status.processing {
+            color: var(--yellow);
+        }
+
+        .ai-status.success {
+            color: var(--green);
+        }
+
+        .ai-status.error {
+            color: var(--red);
+        }
+
+        .voice-button {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 0;
+            background: var(--accent);
+            color: white;
+            font-size: 23px;
+            box-shadow: 0 8px 30px rgba(124, 92, 255, .3);
+            flex-shrink: 0;
+        }
+
+        .voice-button.recording {
+            background: var(--red);
+            animation: pulse 1.2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.08);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 460px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 20px 70px rgba(0,0,0,.5);
+        }
+
+        .modal-card h2 {
+            margin-bottom: 7px;
+        }
+
+        .modal-description {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 10px;
+            padding: 11px 12px;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .error-box {
+            display: none;
+            margin-top: 15px;
+            padding: 12px;
+            border: 1px solid rgba(255, 92, 103, .4);
+            background: rgba(255, 92, 103, .08);
+            color: #ff9da4;
+            border-radius: 10px;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .error-box.visible {
+            display: block;
+        }
+
+        .success-box {
+            display: none;
+            margin-top: 15px;
+            padding: 12px;
+            border: 1px solid rgba(53, 208, 127, .35);
+            background: rgba(53, 208, 127, .08);
+            color: #7ee8aa;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        .success-box.visible {
+            display: block;
+        }
+
+        .budget-choice-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .budget-choice-button {
+            border: 1px solid var(--border);
+            background: var(--panel-2);
+            color: var(--text);
+            border-radius: 12px;
+            padding: 15px 12px;
+            font-weight: 700;
+            text-align: left;
+            transition: .15s;
+        }
+
+        .budget-choice-button:hover {
+            border-color: var(--accent);
+            background: rgba(124, 92, 255, .12);
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 950px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .budget-panel {
+                grid-row: auto;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .app {
+                padding: 14px;
+            }
+
+            header {
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .brand h1 {
+                font-size: 22px;
+            }
+
+            .panel {
+                padding: 15px;
+                border-radius: 14px;
+            }
+
+            .calendar-day {
+                min-height: 48px;
+            }
+
+            .calendar-month {
+                min-width: 110px;
+                font-size: 13px;
+            }
+
+            .voice-row {
+                align-items: center;
+            }
+
+            .ai-status {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <header>
+        <div class="brand">
+            <h1>HOME ORGANIZER</h1>
+            <p>Il tuo centro di controllo personale.</p>
+        </div>
+
+        <div class="connection">
+            <span id="connectionDot" class="connection-dot"></span>
+            <span id="connectionText">Connessione...</span>
+        </div>
+    </header>
+
+    <main class="dashboard">
+
+        <section class="panel budget-panel">
+
+            <div class="panel-header">
+
+                <div>
+                    <div class="panel-title">💰 Budget</div>
+                    <div class="panel-subtitle">
+                        Gestisci le tue categorie e i tuoi movimenti.
+                    </div>
+                </div>
+
+                <button
+                    class="btn"
+                    onclick="openSectionModal()">
+                    + Crea sezione
+                </button>
+
+            </div>
+
+            <div class="budget-chart-container">
+
+                <canvas
+                    id="budgetChart"
+                    width="290"
+                    height="290">
+                </canvas>
+
+                <div
+                    id="budgetEmpty"
+                    class="empty-state">
+                    Nessun movimento nel budget.
+                    <br>
+                    Crea una sezione e registra il primo movimento.
+                </div>
+
+            </div>
+
+            <div class="budget-summary">
+
+                <div class="budget-total-label">
+                    Totale movimenti
+                </div>
+
+                <div
+                    id="budgetTotal"
+                    class="budget-total">
+                    € 0,00
+                </div>
+
+                <div
+                    id="budgetSectionList"
+                    class="budget-section-list">
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="panel calendar">
+
+            <div class="panel-header">
+
+                <div>
+                    <div class="panel-title">📅 Calendario</div>
+                    <div class="panel-subtitle">
+                        Impegni, promemoria e scadenze.
+                    </div>
+                </div>
+
+                <div class="calendar-navigation">
+
+                    <button onclick="changeMonth(-1)">
+                        ‹
+                    </button>
+
+                    <div
+                        id="calendarMonth"
+                        class="calendar-month">
+                    </div>
+
+                    <button onclick="changeMonth(1)">
+                        ›
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="calendar-weekdays">
+
+                <div class="weekday">LUN</div>
+                <div class="weekday">MAR</div>
+                <div class="weekday">MER</div>
+                <div class="weekday">GIO</div>
+                <div class="weekday">VEN</div>
+                <div class="weekday">SAB</div>
+                <div class="weekday">DOM</div>
+
+            </div>
+
+            <div
+                id="calendarGrid"
+                class="calendar-grid">
+            </div>
+
+            <div
+                id="calendarDayDetails"
+                class="calendar-day-details">
+            </div>
+
+        </section>
+
+        <section class="panel tasks">
+
+            <div class="panel-header">
+
+                <div>
+                    <div class="panel-title">
+                        📌 Cose da fare
+                    </div>
+
+                    <div class="panel-subtitle">
+                        Anche le scadenze passate rimangono qui finché non le completi.
+                    </div>
+                </div>
+
+                <button
+                    class="btn secondary"
+                    onclick="openTaskModal()">
+                    + Nuovo
+                </button>
+
+            </div>
+
+            <div
+                id="tasksList"
+                class="tasks-list">
+            </div>
+
+            <div class="voice-row">
+
+                <div
+                    id="aiStatus"
+                    class="ai-status">
+                    Premi 🎙️ e parla.
+                </div>
+
+                <button
+                    id="voiceButton"
+                    class="voice-button"
+                    title="Inserisci con la voce">
+                    🎙️
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<div
+    id="sectionModal"
+    class="modal">
+
+    <div class="modal-card">
+
+        <h2>Nuova sezione</h2>
+
+        <div class="modal-description">
+            Esempio: Incassi, Spese, Casa, Auto, Lavoro...
+        </div>
+
+        <div class="form-group">
+
+            <label>
+                Nome sezione
+            </label>
+
+            <input
+                id="sectionName"
+                type="text"
+                placeholder="Es. Incassi"
+                autocomplete="off">
+
+        </div>
+
+        <div
+            id="sectionError"
+            class="error-box">
+        </div>
+
+        <div
+            id="sectionSuccess"
+            class="success-box">
+        </div>
+
+        <div class="modal-actions">
+
+            <button
+                class="btn secondary"
+                onclick="closeSectionModal()">
+                Annulla
+            </button>
+
+            <button
+                class="btn"
+                onclick="createBudgetSection()">
+                Crea
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    id="budgetChoiceModal"
+    class="modal">
+
+    <div class="modal-card">
+
+        <h2>Scegli sezione budget</h2>
+
+        <div class="modal-description">
+            Premi direttamente sulla sezione in cui vuoi registrare la cifra.
+        </div>
+
+        <div
+            id="budgetChoiceList"
+            class="budget-choice-list">
+        </div>
+
+        <div class="modal-actions">
+            <button
+                class="btn secondary"
+                onclick="cancelBudgetSectionChoice()">
+                Annulla
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    id="taskModal"
+    class="modal">
+
+    <div class="modal-card">
+
+        <h2>Nuovo impegno</h2>
+
+        <div class="modal-description">
+            Crea manualmente un promemoria o una scadenza.
+        </div>
+
+        <div class="form-group">
+
+            <label>
+                Titolo
+            </label>
+
+            <input
+                id="taskTitle"
+                type="text"
+                placeholder="Es. Pagare commercialista">
+
+        </div>
+
+        <div class="form-group">
+
+            <label>
+                Data
+            </label>
+
+            <input
+                id="taskDate"
+                type="date">
+
+        </div>
+
+        <div class="form-group">
+
+            <label>
+                Ora (facoltativa)
+            </label>
+
+            <input
+                id="taskTime"
+                type="time">
+
+        </div>
+
+        <div class="form-group">
+
+            <label>
+                Importo (€)
+            </label>
+
+            <input
+                id="taskAmount"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0">
+
+        </div>
+
+        <div class="form-group">
+
+            <label>
+                Categoria
+            </label>
+
+            <select id="taskCategory">
+
+                <option value="altro">
+                    Altro
+                </option>
+
+                <option value="lavoro">
+                    Lavoro
+                </option>
+
+                <option value="casa">
+                    Casa
+                </option>
+
+                <option value="finanze">
+                    Finanze
+                </option>
+
+                <option value="personale">
+                    Personale
+                </option>
+
+            </select>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>
+                Nota
+            </label>
+
+            <textarea
+                id="taskNote"
+                rows="3"
+                placeholder="Eventuali dettagli..."></textarea>
+
+        </div>
+
+        <div
+            id="taskError"
+            class="error-box">
+        </div>
+
+        <div class="modal-actions">
+
+            <button
+                class="btn secondary"
+                onclick="closeTaskModal()">
+                Annulla
+            </button>
+
+            <button
+                class="btn"
+                onclick="createTask()">
+                Crea impegno
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   SUPABASE
+========================================================= */
+
+const SUPABASE_URL =
+    "https://pwfabbvxknirksqpjcra.supabase.co";
+
+const SUPABASE_ANON_KEY =
+    "sb_publishable_2ibK4VXsvq6j3BX0SpbIjw_-7WXCaPK";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
+
+
+/* =========================================================
+   GEMINI
+========================================================= */
+
+const GEMINI_API_KEY =
+    "AQ.Ab8RN6Jdx63BrOTSI_C0NT8GmkrIYGASGo8oQ7AvBpvf8hwPGg";
+
+const GEMINI_MODELS = [
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash"
+];
+
+const GEMINI_ENDPOINT =
+    "https://generativelanguage.googleapis.com/v1beta/interactions";
+
+
+/* =========================================================
+   STATO APP
+========================================================= */
+
+let budgetSections = [];
+let budgetMovements = [];
+let commitments = [];
+
+let currentCalendarDate = new Date();
+let selectedCalendarDate = todayISO();
+
+
+/* =========================================================
+   UTILITY
+========================================================= */
+
+function euro(value) {
+
+    const number = Number(value || 0);
+
+    return new Intl.NumberFormat(
+        "it-IT",
+        {
+            style: "currency",
+            currency: "EUR"
+        }
+    ).format(number);
+}
+
+
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+function formatDateItalian(dateString) {
+
+    if (!dateString) return "";
+
+    const date = new Date(
+        dateString + "T00:00:00"
+    );
+
+    return date.toLocaleDateString(
+        "it-IT",
+        {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        }
+    );
+}
+
+
+function todayISO() {
+
+    const date = new Date();
+
+    const year = date.getFullYear();
+
+    const month = String(
+        date.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+        date.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+
+function currentDateItalian() {
+
+    return new Intl.DateTimeFormat(
+        "it-IT",
+        {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric"
+        }
+    ).format(new Date());
+}
+
+
+/* =========================================================
+   STATO AI
+========================================================= */
+
+function setAIStatus(
+    message,
+    type = ""
+) {
+
+    const element =
+        document.getElementById("aiStatus");
+
+    if (!element) return;
+
+    element.textContent =
+        message;
+
+    element.className =
+        "ai-status";
+
+    if (type) {
+        element.classList.add(type);
+    }
+}
+
+
+/* =========================================================
+   CONNESSIONE
+========================================================= */
+
+async function testConnection() {
+
+    const dot =
+        document.getElementById("connectionDot");
+
+    const text =
+        document.getElementById("connectionText");
+
+    try {
+
+        const { error } =
+            await supabaseClient
+                .from("sezioni_budget")
+                .select("id")
+                .limit(1);
+
+        if (error) {
+            throw error;
+        }
+
+        dot.classList.add("online");
+
+        text.textContent =
+            "Supabase connesso";
+
+    } catch (error) {
+
+        dot.classList.add("offline");
+
+        text.textContent =
+            "Errore Supabase";
+
+        console.error(
+            "Errore connessione:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   CARICAMENTO DATI
+========================================================= */
+
+async function loadAllData() {
+
+    await Promise.all([
+        loadBudgetSections(),
+        loadBudgetMovements(),
+        loadCommitments()
+    ]);
+
+    renderBudget();
+    renderCalendar();
+    renderTasks();
+}
+
+
+/* =========================================================
+   SEZIONI BUDGET
+========================================================= */
+
+async function loadBudgetSections() {
+
+    const { data, error } =
+        await supabaseClient
+            .from("sezioni_budget")
+            .select("*")
+            .order("creato_il", {
+                ascending: true
+            });
+
+    if (error) {
+
+        console.error(
+            "Errore caricamento sezioni:",
+            error
+        );
+
+        showSectionError(
+            "Errore caricamento sezioni:\n" +
+            error.message
+        );
+
+        return;
+    }
+
+    budgetSections = data || [];
+}
+
+
+async function createBudgetSection() {
+
+    const input =
+        document.getElementById("sectionName");
+
+    const name =
+        input.value.trim();
+
+    if (!name) {
+
+        showSectionError(
+            "Inserisci il nome della sezione."
+        );
+
+        return;
+    }
+
+    clearSectionMessages();
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("sezioni_budget")
+                .insert({
+                    nome: name
+                })
+                .select()
+                .single();
+
+        if (error) {
+            throw error;
+        }
+
+        budgetSections.push(data);
+
+        renderBudget();
+
+        showSectionSuccess(
+            "Sezione creata correttamente."
+        );
+
+        input.value = "";
+
+        setTimeout(() => {
+            closeSectionModal();
+        }, 500);
+
+    } catch (error) {
+
+        console.error(
+            "Errore creazione sezione:",
+            error
+        );
+
+        showSectionError(
+            "Impossibile inserire la sezione.\n\n" +
+            "Messaggio Supabase:\n" +
+            error.message +
+            "\n\n" +
+            "Dettagli:\n" +
+            JSON.stringify(
+                error,
+                null,
+                2
+            )
+        );
+    }
+}
+
+
+/* =========================================================
+   MOVIMENTI BUDGET
+========================================================= */
+
+async function loadBudgetMovements() {
+
+    const { data, error } =
+        await supabaseClient
+            .from("movimenti_budget")
+            .select("*")
+            .order("data", {
+                ascending: false
+            });
+
+    if (error) {
+
+        console.error(
+            "Errore caricamento movimenti:",
+            error
+        );
+
+        return;
+    }
+
+    budgetMovements = data || [];
+}
+
+
+/* =========================================================
+   IMPEGNI
+========================================================= */
+
+async function loadCommitments() {
+
+    const { data, error } =
+        await supabaseClient
+            .from("impegni")
+            .select("*")
+            .order("data", {
+                ascending: true
+            })
+            .order("ora", {
+                ascending: true
+            });
+
+    if (error) {
+
+        console.error(
+            "Errore caricamento impegni:",
+            error
+        );
+
+        return;
+    }
+
+    commitments = data || [];
+}
+
+
+/* =========================================================
+   RENDER BUDGET
+========================================================= */
+
+function renderBudget() {
+
+    const totalElement =
+        document.getElementById("budgetTotal");
+
+    const listElement =
+        document.getElementById("budgetSectionList");
+
+    const emptyElement =
+        document.getElementById("budgetEmpty");
+
+    const canvas =
+        document.getElementById("budgetChart");
+
+    const ctx =
+        canvas.getContext("2d");
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    const sectionTotals = {};
+
+    budgetSections.forEach(section => {
+
+        sectionTotals[section.id] = 0;
+
+    });
+
+
+    budgetMovements.forEach(movement => {
+
+        if (
+            sectionTotals[movement.sezione_id]
+            !== undefined
+        ) {
+
+            sectionTotals[movement.sezione_id]
+                += Number(movement.importo || 0);
+
+        }
+
+    });
+
+
+    const total =
+        Object.values(sectionTotals)
+            .reduce(
+                (sum, value) =>
+                    sum + value,
+                0
+            );
+
+
+    totalElement.textContent =
+        euro(total);
+
+
+    if (total <= 0) {
+
+        emptyElement.style.display =
+            "block";
+
+        canvas.style.display =
+            "none";
+
+    } else {
+
+        emptyElement.style.display =
+            "none";
+
+        canvas.style.display =
+            "block";
+
+        drawBudgetChart(
+            ctx,
+            sectionTotals,
+            total
+        );
+    }
+
+
+    const colors = [
+        "#7c5cff",
+        "#35d07f",
+        "#4da3ff",
+        "#f5c451",
+        "#ff5c67",
+        "#c86bfa",
+        "#55d6be",
+        "#ff9f43"
+    ];
+
+
+    listElement.innerHTML = "";
+
+
+    budgetSections.forEach(
+        (section, index) => {
+
+            const value =
+                sectionTotals[section.id] || 0;
+
+            const row =
+                document.createElement("div");
+
+            row.className =
+                "budget-section-row";
+
+            row.innerHTML = `
+                <div class="budget-section-name">
+
+                    <span
+                        class="section-dot"
+                        style="background:${colors[index % colors.length]}">
+                    </span>
+
+                    ${escapeHtml(section.nome)}
+
+                </div>
+
+                <div class="budget-section-value">
+                    ${euro(value)}
+                </div>
+            `;
+
+            listElement.appendChild(row);
+        }
+    );
+}
+
+
+/* =========================================================
+   GRAFICO
+========================================================= */
+
+function drawBudgetChart(
+    ctx,
+    sectionTotals,
+    total
+) {
+
+    const centerX = 145;
+    const centerY = 145;
+
+    const radius = 110;
+
+    const colors = [
+        "#7c5cff",
+        "#35d07f",
+        "#4da3ff",
+        "#f5c451",
+        "#ff5c67",
+        "#c86bfa",
+        "#55d6be",
+        "#ff9f43"
+    ];
+
+    let startAngle =
+        -Math.PI / 2;
+
+
+    budgetSections.forEach(
+        (section, index) => {
+
+            const value =
+                sectionTotals[section.id] || 0;
+
+            if (value <= 0) {
+                return;
+            }
+
+            const slice =
+                (value / total)
+                * Math.PI
+                * 2;
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                centerX,
+                centerY
+            );
+
+            ctx.arc(
+                centerX,
+                centerY,
+                radius,
+                startAngle,
+                startAngle + slice
+            );
+
+            ctx.closePath();
+
+            ctx.fillStyle =
+                colors[index % colors.length];
+
+            ctx.fill();
+
+            startAngle += slice;
+        }
+    );
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        centerX,
+        centerY,
+        66,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fillStyle =
+        "#13161b";
+
+    ctx.fill();
+
+
+    ctx.fillStyle =
+        "#f2f4f7";
+
+    ctx.font =
+        "bold 18px Arial";
+
+    ctx.textAlign =
+        "center";
+
+    ctx.textBaseline =
+        "middle";
+
+    ctx.fillText(
+        euro(total),
+        centerX,
+        centerY
+    );
+}
+
+
+/* =========================================================
+   CALENDARIO
+========================================================= */
+
+function changeMonth(direction) {
+
+    currentCalendarDate =
+        new Date(
+            currentCalendarDate.getFullYear(),
+            currentCalendarDate.getMonth() + direction,
+            1
+        );
+
+    const year =
+        currentCalendarDate.getFullYear();
+
+    const month =
+        String(
+            currentCalendarDate.getMonth() + 1
+        ).padStart(2, "0");
+
+    selectedCalendarDate =
+        `${year}-${month}-01`;
+
+    renderCalendar();
+}
+
+
+function renderCalendar() {
+
+    const monthElement =
+        document.getElementById(
+            "calendarMonth"
+        );
+
+    const grid =
+        document.getElementById(
+            "calendarGrid"
+        );
+
+    const year =
+        currentCalendarDate.getFullYear();
+
+    const month =
+        currentCalendarDate.getMonth();
+
+
+    monthElement.textContent =
+        currentCalendarDate.toLocaleDateString(
+            "it-IT",
+            {
+                month: "long",
+                year: "numeric"
+            }
+        );
+
+
+    grid.innerHTML = "";
+
+
+    const firstDay =
+        new Date(
+            year,
+            month,
+            1
+        );
+
+    let startingDay =
+        firstDay.getDay();
+
+    startingDay =
+        startingDay === 0
+            ? 6
+            : startingDay - 1;
+
+
+    const daysInMonth =
+        new Date(
+            year,
+            month + 1,
+            0
+        ).getDate();
+
+
+    const daysInPreviousMonth =
+        new Date(
+            year,
+            month,
+            0
+        ).getDate();
+
+
+    for (
+        let i = 0;
+        i < startingDay;
+        i++
+    ) {
+
+        const dayNumber =
+            daysInPreviousMonth
+            - startingDay
+            + i
+            + 1;
+
+        const cell =
+            createCalendarDay(
+                dayNumber,
+                true,
+                null
+            );
+
+        grid.appendChild(cell);
+    }
+
+
+    for (
+        let day = 1;
+        day <= daysInMonth;
+        day++
+    ) {
+
+        const date =
+            `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+        const cell =
+            createCalendarDay(
+                day,
+                false,
+                date
+            );
+
+        grid.appendChild(cell);
+    }
+
+
+    const remaining =
+        42 - grid.children.length;
+
+
+    for (
+        let i = 1;
+        i <= remaining;
+        i++
+    ) {
+
+        const cell =
+            createCalendarDay(
+                i,
+                true,
+                null
+            );
+
+        grid.appendChild(cell);
+    }
+
+
+    renderCalendarDayDetails();
+}
+
+
+function createCalendarDay(
+    dayNumber,
+    otherMonth,
+    date
+) {
+
+    const cell =
+        document.createElement("div");
+
+    cell.className =
+        "calendar-day";
+
+
+    if (otherMonth) {
+        cell.classList.add(
+            "other-month"
+        );
+    }
+
+
+    if (
+        date &&
+        date === todayISO()
+    ) {
+
+        cell.classList.add(
+            "today"
+        );
+    }
+
+
+    if (
+        date &&
+        date === selectedCalendarDate
+    ) {
+
+        cell.classList.add(
+            "selected"
+        );
+    }
+
+
+    cell.innerHTML = `
+        <div class="calendar-day-number">
+            ${dayNumber}
+        </div>
+    `;
+
+
+    if (date) {
+
+        const events =
+            commitments.filter(
+                item =>
+                    item.data === date
+            );
+
+
+        if (events.length > 0) {
+
+            const dot =
+                document.createElement("div");
+
+            dot.className =
+                "calendar-event-dot";
+
+            cell.appendChild(dot);
+
+
+            const count =
+                document.createElement("div");
+
+            count.className =
+                "calendar-event-count";
+
+            count.textContent =
+                events.length;
+
+            cell.appendChild(count);
+        }
+
+
+        cell.onclick =
+            () => {
+
+                selectedCalendarDate =
+                    date;
+
+                renderCalendar();
+
+            };
+    }
+
+
+    return cell;
+}
+
+
+function renderCalendarDayDetails() {
+
+    const container =
+        document.getElementById(
+            "calendarDayDetails"
+        );
+
+    if (!container) {
+        return;
+    }
+
+
+    const events =
+        commitments
+            .filter(
+                item =>
+                    item.data === selectedCalendarDate
+            )
+            .sort(
+                (a, b) =>
+                    (a.ora || "23:59")
+                        .localeCompare(
+                            b.ora || "23:59"
+                        )
+            );
+
+
+    const dateLabel =
+        formatDateItalian(
+            selectedCalendarDate
+        );
+
+
+    let html = `
+        <div class="calendar-details-title">
+            Impegni del ${dateLabel}
+        </div>
+    `;
+
+
+    if (events.length === 0) {
+
+        html += `
+            <div class="empty-state" style="padding:14px 8px;">
+                Nessun impegno per questa giornata.
+            </div>
+        `;
+
+        container.innerHTML = html;
+        return;
+    }
+
+
+    html +=
+        `<div class="calendar-details-list">`;
+
+
+    events.forEach(item => {
+
+        const timeText =
+            item.ora
+                ? `🕐 ${item.ora.substring(0, 5)}`
+                : "Senza orario";
+
+        const amountText =
+            Number(item.importo || 0) > 0
+                ? ` · 💶 ${euro(item.importo)}`
+                : "";
+
+        html += `
+            <div class="calendar-detail-task ${item.completato ? "completed" : ""}">
+                <div class="calendar-detail-main">
+                    <div class="calendar-detail-name">
+                        ${escapeHtml(item.titolo)}
+                    </div>
+                    <div class="calendar-detail-meta">
+                        ${timeText}${amountText}
+                    </div>
+                </div>
+                <div class="calendar-detail-status">
+                    ${item.completato ? "✓ Completato" : "Da fare"}
+                </div>
+            </div>
+        `;
+    });
+
+
+    html += `</div>`;
+
+    container.innerHTML = html;
+}
+
+
+/* =========================================================
+   TASK / IMPEGNI
+========================================================= */
+
+function sortTasksByDate(items) {
+
+    return [...items].sort(
+        (a, b) => {
+
+            const dateA =
+                `${a.data} ${a.ora || "23:59"}`;
+
+            const dateB =
+                `${b.data} ${b.ora || "23:59"}`;
+
+            return dateA.localeCompare(dateB);
+        }
+    );
+}
+
+
+function buildTaskElement(
+    item,
+    state
+) {
+
+    const task =
+        document.createElement("div");
+
+    task.className =
+        "task";
+
+
+    const today =
+        todayISO();
+
+    const isOverdue =
+        !item.completato &&
+        item.data < today;
+
+    const isToday =
+        !item.completato &&
+        item.data === today;
+
+
+    if (isOverdue) {
+        task.classList.add("overdue");
+    }
+
+    if (isToday) {
+        task.classList.add("today-task");
+    }
+
+    if (state === "future") {
+        task.classList.add("future");
+    }
+
+    if (state === "completed") {
+        task.classList.add("completed");
+    }
+
+
+    const timeText =
+        item.ora
+            ? `🕐 ${item.ora.substring(0, 5)}`
+            : "";
+
+
+    const amountText =
+        Number(item.importo || 0) > 0
+            ? `<span class="task-amount">💶 ${euro(item.importo)}</span>`
+            : "";
+
+
+    const overdueText =
+        isOverdue
+            ? `<span class="task-overdue">⚠️ Scaduto</span>`
+            : "";
+
+
+    const todayText =
+        isToday
+            ? `<span>📍 Oggi</span>`
+            : "";
+
+
+    let completedText = "";
+
+    if (
+        state === "completed" &&
+        item.completato_il
+    ) {
+
+        const completedDate =
+            new Date(item.completato_il)
+                .toLocaleDateString(
+                    "it-IT",
+                    {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric"
+                    }
+                );
+
+        completedText =
+            `<span class="task-completed">✓ Completato ${completedDate}</span>`;
+    }
+
+
+    const checkButton =
+        state === "completed"
+            ? `
+                <button
+                    class="task-check completed-check"
+                    type="button"
+                    disabled
+                    title="Completato">
+                    ✓
+                </button>
+            `
+            : `
+                <button
+                    class="task-check"
+                    type="button"
+                    title="Segna come concluso">
+                    ✓
+                </button>
+            `;
+
+
+    task.innerHTML = `
+
+        ${checkButton}
+
+        <div class="task-content">
+
+            <div class="task-title">
+                ${escapeHtml(item.titolo)}
+            </div>
+
+            <div class="task-meta">
+
+                <span>
+                    📅 ${formatDateItalian(item.data)}
+                </span>
+
+                ${timeText
+                    ? `<span>${timeText}</span>`
+                    : ""
+                }
+
+                ${amountText}
+                ${todayText}
+                ${overdueText}
+                ${completedText}
+
+            </div>
+
+        </div>
+    `;
+
+
+    if (state !== "completed") {
+
+        task
+            .querySelector(".task-check")
+            .onclick =
+                () => completeCommitment(item);
+    }
+
+
+    return task;
+}
+
+
+function appendTaskSection(
+    container,
+    title,
+    items,
+    state,
+    emptyText = ""
+) {
+
+    const section =
+        document.createElement("div");
+
+    section.className =
+        `tasks-section ${state === "future" ? "future-section" : ""}`;
+
+
+    section.innerHTML = `
+        <div class="tasks-section-header">
+            <div class="tasks-section-title">
+                ${title}
+            </div>
+            <div class="tasks-section-count">
+                ${items.length}
+            </div>
+        </div>
+        <div class="tasks-section-list"></div>
+    `;
+
+
+    const list =
+        section.querySelector(
+            ".tasks-section-list"
+        );
+
+
+    if (items.length === 0) {
+
+        list.innerHTML = `
+            <div class="empty-state" style="padding:14px 8px;">
+                ${emptyText}
+            </div>
+        `;
+
+    } else {
+
+        items.forEach(item => {
+
+            list.appendChild(
+                buildTaskElement(
+                    item,
+                    state
+                )
+            );
+        });
+    }
+
+
+    container.appendChild(section);
+}
+
+
+function renderTasks() {
+
+    const container =
+        document.getElementById(
+            "tasksList"
+        );
+
+    container.innerHTML = "";
+
+
+    const today =
+        todayISO();
+
+
+    const active =
+        commitments.filter(
+            item =>
+                !item.completato
+        );
+
+
+    const currentTasks =
+        sortTasksByDate(
+            active.filter(
+                item =>
+                    item.data <= today
+            )
+        );
+
+
+    const futureTasks =
+        sortTasksByDate(
+            active.filter(
+                item =>
+                    item.data > today
+            )
+        );
+
+
+    const completedTasks =
+        commitments
+            .filter(
+                item =>
+                    item.completato
+            )
+            .sort(
+                (a, b) =>
+                    String(
+                        b.completato_il || ""
+                    ).localeCompare(
+                        String(
+                            a.completato_il || ""
+                        )
+                    )
+            );
+
+
+    appendTaskSection(
+        container,
+        "📌 Oggi / da completare",
+        currentTasks,
+        "current",
+        "🎉 Nessun impegno da completare oggi."
+    );
+
+
+    appendTaskSection(
+        container,
+        "⏭ Prossimamente",
+        futureTasks,
+        "future",
+        "Nessun impegno futuro."
+    );
+
+
+    appendTaskSection(
+        container,
+        "✅ Storico completati",
+        completedTasks,
+        "completed",
+        "Non hai ancora completato nessun impegno."
+    );
+}
+
+
+/* =========================================================
+   CREAZIONE IMPEGNO MANUALE
+========================================================= */
+
+async function createTask() {
+
+    const title =
+        document
+            .getElementById("taskTitle")
+            .value
+            .trim();
+
+    const date =
+        document
+            .getElementById("taskDate")
+            .value;
+
+    const time =
+        document
+            .getElementById("taskTime")
+            .value || null;
+
+    const amount =
+        Number(
+            document
+                .getElementById("taskAmount")
+                .value || 0
+        );
+
+    const category =
+        document
+            .getElementById("taskCategory")
+            .value;
+
+    const note =
+        document
+            .getElementById("taskNote")
+            .value
+            .trim();
+
+
+    if (!title) {
+
+        showTaskError(
+            "Inserisci un titolo."
+        );
+
+        return;
+    }
+
+
+    if (!date) {
+
+        showTaskError(
+            "Inserisci una data."
+        );
+
+        return;
+    }
+
+
+    clearTaskError();
+
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("impegni")
+                .insert({
+                    titolo: title,
+                    azione: "promemoria",
+                    data: date,
+                    ora: time,
+                    importo: amount,
+                    categoria: category,
+                    nota: note,
+                    completato: false
+                })
+                .select()
+                .single();
+
+
+        if (error) {
+            throw error;
+        }
+
+
+        commitments.push(data);
+
+        renderTasks();
+        renderCalendar();
+
+        closeTaskModal();
+
+    } catch (error) {
+
+        console.error(
+            "Errore creazione impegno:",
+            error
+        );
+
+        showTaskError(
+            "Impossibile creare l'impegno.\n\n" +
+            error.message +
+            "\n\n" +
+            JSON.stringify(
+                error,
+                null,
+                2
+            )
+        );
+    }
+}
+
+
+/* =========================================================
+   CREAZIONE IMPEGNO DA GEMINI
+========================================================= */
+
+async function createTaskFromAI(command) {
+
+    if (!command) {
+        throw new Error(
+            "Gemini non ha restituito alcun comando."
+        );
+    }
+
+
+    const title =
+        String(command.titolo || "").trim();
+
+
+    const date =
+        String(command.data || "").trim();
+
+
+    if (!title) {
+
+        throw new Error(
+            "Gemini non ha restituito un titolo valido."
+        );
+    }
+
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+
+        throw new Error(
+            "Gemini non ha restituito una data valida: " +
+            date
+        );
+    }
+
+
+    let time =
+        command.ora || null;
+
+
+    if (time) {
+
+        time =
+            String(time)
+                .trim()
+                .substring(0, 5);
+
+        if (!/^\d{2}:\d{2}$/.test(time)) {
+            time = null;
+        }
+    }
+
+
+    let amount =
+        Number(command.importo || 0);
+
+    if (!Number.isFinite(amount)) {
+        amount = 0;
+    }
+
+
+    amount =
+        Math.max(
+            0,
+            amount
+        );
+
+
+    const allowedCategories = [
+        "altro",
+        "lavoro",
+        "casa",
+        "finanze",
+        "personale"
+    ];
+
+
+    const category =
+        allowedCategories.includes(
+            command.categoria
+        )
+            ? command.categoria
+            : "altro";
+
+
+    const note =
+        String(command.nota || "").trim();
+
+
+    const action =
+        command.azione === "crea_evento"
+            ? "crea_evento"
+            : "promemoria";
+
+
+    const { data, error } =
+        await supabaseClient
+            .from("impegni")
+            .insert({
+                titolo: title,
+                azione: action,
+                data: date,
+                ora: time,
+                importo: amount,
+                categoria: category,
+                nota: note,
+                completato: false
+            })
+            .select()
+            .single();
+
+
+    if (error) {
+        throw error;
+    }
+
+
+    commitments.push(data);
+
+    renderTasks();
+    renderCalendar();
+
+
+    return data;
+}
+
+
+/* =========================================================
+   COMPLETAMENTO IMPEGNO
+========================================================= */
+
+async function completeCommitment(item) {
+
+    const amount =
+        Number(item.importo || 0);
+
+
+    if (amount > 0) {
+
+        const shouldRegister =
+            confirm(
+                `Hai concluso "${item.titolo}".\n\n` +
+                `Importo: ${euro(amount)}\n\n` +
+                `Vuoi registrare questa cifra nel budget?`
+            );
+
+
+        if (shouldRegister) {
+
+            if (
+                budgetSections.length === 0
+            ) {
+
+                alert(
+                    "Non hai ancora creato nessuna sezione budget.\n\n" +
+                    "Crea prima una sezione, poi potrai registrare questo movimento."
+                );
+
+            } else {
+
+                const selectedSection =
+                    await askBudgetSection();
+
+
+                if (selectedSection) {
+
+                    await addBudgetMovement(
+                        selectedSection,
+                        amount,
+                        item.titolo,
+                        item.id
+                    );
+                }
+            }
+        }
+    }
+
+
+    try {
+
+        const { error } =
+            await supabaseClient
+                .from("impegni")
+                .update({
+                    completato: true,
+                    completato_il:
+                        new Date().toISOString()
+                })
+                .eq(
+                    "id",
+                    item.id
+                );
+
+
+        if (error) {
+            throw error;
+        }
+
+
+        item.completato = true;
+
+        item.completato_il =
+            new Date().toISOString();
+
+
+        renderTasks();
+        renderCalendar();
+
+
+    } catch (error) {
+
+        console.error(
+            "Errore completamento:",
+            error
+        );
+
+        alert(
+            "Errore durante il completamento:\n\n" +
+            error.message
+        );
+    }
+}
+
+
+/* =========================================================
+   SELEZIONE SEZIONE BUDGET
+========================================================= */
+
+let budgetSectionChoiceResolver = null;
+
+
+function askBudgetSection() {
+
+    return new Promise(resolve => {
+
+        if (budgetSections.length === 0) {
+            resolve(null);
+            return;
+        }
+
+        budgetSectionChoiceResolver = resolve;
+
+        const modal =
+            document.getElementById(
+                "budgetChoiceModal"
+            );
+
+        const list =
+            document.getElementById(
+                "budgetChoiceList"
+            );
+
+        list.innerHTML = "";
+
+        budgetSections.forEach(section => {
+
+            const button =
+                document.createElement("button");
+
+            button.type = "button";
+            button.className =
+                "budget-choice-button";
+
+            button.textContent =
+                section.nome;
+
+            button.onclick = () => {
+                selectBudgetSection(section);
+            };
+
+            list.appendChild(button);
+        });
+
+        modal.classList.add("open");
+    });
+}
+
+
+function selectBudgetSection(section) {
+
+    const modal =
+        document.getElementById(
+            "budgetChoiceModal"
+        );
+
+    modal.classList.remove("open");
+
+    if (budgetSectionChoiceResolver) {
+        const resolve =
+            budgetSectionChoiceResolver;
+
+        budgetSectionChoiceResolver = null;
+        resolve(section);
+    }
+}
+
+
+function cancelBudgetSectionChoice() {
+
+    const modal =
+        document.getElementById(
+            "budgetChoiceModal"
+        );
+
+    modal.classList.remove("open");
+
+    if (budgetSectionChoiceResolver) {
+        const resolve =
+            budgetSectionChoiceResolver;
+
+        budgetSectionChoiceResolver = null;
+        resolve(null);
+    }
+}
+
+
+/* =========================================================
+   INSERIMENTO MOVIMENTO BUDGET
+========================================================= */
+
+async function addBudgetMovement(
+    section,
+    amount,
+    description,
+    commitmentId
+) {
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("movimenti_budget")
+                .insert({
+                    sezione_id: section.id,
+                    importo: amount,
+                    descrizione: description,
+                    data: todayISO(),
+                    impegno_id: commitmentId
+                })
+                .select()
+                .single();
+
+
+        if (error) {
+            throw error;
+        }
+
+
+        budgetMovements.push(data);
+
+        renderBudget();
+
+
+    } catch (error) {
+
+        console.error(
+            "Errore movimento budget:",
+            error
+        );
+
+        alert(
+            "Impossibile registrare il movimento:\n\n" +
+            error.message
+        );
+    }
+}
+
+
+/* =========================================================
+   GEMINI - ESTRAZIONE TESTO
+========================================================= */
+
+function extractGeminiText(responseData) {
+
+    if (!responseData) {
+        return "";
+    }
+
+
+    /*
+     * Interactions API:
+     * la risposta finale può essere direttamente
+     * disponibile in output_text.
+     */
+
+    if (
+        typeof responseData.output_text ===
+        "string"
+    ) {
+
+        return responseData.output_text;
+    }
+
+
+    /*
+     * Fallback nel caso la risposta venga
+     * restituita dentro un oggetto interaction.
+     */
+
+    if (
+        responseData.interaction &&
+        typeof responseData.interaction.output_text ===
+        "string"
+    ) {
+
+        return responseData.interaction.output_text;
+    }
+
+
+    /*
+     * Fallback per eventuali risposte testuali dirette.
+     */
+
+    if (
+        typeof responseData.text ===
+        "string"
+    ) {
+
+        return responseData.text;
+    }
+
+
+    /*
+     * Fallback per steps dell'Interactions API.
+     */
+
+    const steps =
+        Array.isArray(responseData.steps)
+            ? responseData.steps
+            : [];
+
+
+    for (const step of steps) {
+
+        if (
+            step &&
+            typeof step.model_output ===
+            "string"
+        ) {
+
+            return step.model_output;
+        }
+
+
+        const modelOutput =
+            step?.model_output;
+
+
+        if (
+            modelOutput &&
+            Array.isArray(
+                modelOutput.content
+            )
+        ) {
+
+            const text =
+                modelOutput.content
+                    .filter(
+                        item =>
+                            item &&
+                            typeof item.text ===
+                            "string"
+                    )
+                    .map(
+                        item =>
+                            item.text
+                    )
+                    .join("");
+
+
+            if (text) {
+                return text;
+            }
+        }
+
+
+        if (
+            step &&
+            Array.isArray(
+                step.content
+            )
+        ) {
+
+            const text =
+                step.content
+                    .filter(
+                        item =>
+                            item &&
+                            typeof item.text ===
+                            "string"
+                    )
+                    .map(
+                        item =>
+                            item.text
+                    )
+                    .join("");
+
+
+            if (text) {
+                return text;
+            }
+        }
+    }
+
+
+    /*
+     * Ultimo fallback per vecchie strutture.
+     */
+
+    if (
+        responseData.response &&
+        typeof responseData.response.text ===
+        "string"
+    ) {
+
+        return responseData.response.text;
+    }
+
+
+    return "";
+}
+
+
+/* =========================================================
+   GEMINI - PARSING JSON
+========================================================= */
+
+function parseGeminiJSON(text) {
+
+    if (!text) {
+
+        throw new Error(
+            "Gemini non ha restituito testo."
+        );
+    }
+
+
+    if (
+        typeof text === "object"
+    ) {
+
+        return text;
+    }
+
+
+    let cleaned =
+        String(text).trim();
+
+
+    cleaned =
+        cleaned
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/\s*```$/i, "")
+            .trim();
+
+
+    try {
+
+        return JSON.parse(cleaned);
+
+    } catch (firstError) {
+
+        const firstBrace =
+            cleaned.indexOf("{");
+
+        const lastBrace =
+            cleaned.lastIndexOf("}");
+
+
+        if (
+            firstBrace >= 0 &&
+            lastBrace > firstBrace
+        ) {
+
+            const jsonPart =
+                cleaned.substring(
+                    firstBrace,
+                    lastBrace + 1
+                );
+
+
+            try {
+
+                return JSON.parse(
+                    jsonPart
+                );
+
+            } catch (secondError) {
+
+                throw new Error(
+                    "JSON Gemini non valido:\n\n" +
+                    cleaned
+                );
+            }
+        }
+
+
+        throw new Error(
+            "Gemini non ha restituito un JSON valido:\n\n" +
+            cleaned
+        );
+    }
+}
+
+
+/* =========================================================
+   GEMINI - CHIAMATA
+========================================================= */
+
+async function askGemini(transcript) {
+
+    const today =
+        todayISO();
+
+
+    const currentDate =
+        currentDateItalian();
+
+
+    const systemInstruction = `
+Sei il motore di interpretazione vocale di HOME ORGANIZER.
+
+Il tuo compito è trasformare una frase italiana dell'utente
+in un comando strutturato per un'app personale di calendario
+e promemoria.
+
+DATA ATTUALE:
+${today}
+
+DATA ATTUALE IN LINGUA:
+${currentDate}
+
+REGOLE:
+
+1. Interpreta correttamente date relative come:
+   - oggi
+   - domani
+   - dopodomani
+   - lunedì
+   - martedì
+   - mercoledì
+   - giovedì
+   - venerdì
+   - sabato
+   - domenica
+   - tra 3 giorni
+   - settimana prossima
+
+2. Se l'utente dice solamente "ricordami di..."
+   considera la data odierna.
+
+3. Se l'utente specifica un giorno della settimana,
+   usa la prossima occorrenza futura di quel giorno,
+   salvo che l'utente indichi esplicitamente una data passata.
+
+4. Converti sempre la data nel formato:
+   YYYY-MM-DD
+
+5. Se non viene indicata un'ora:
+   ora deve essere null.
+
+6. Se viene indicata un importo:
+   restituiscilo come numero.
+   Esempi:
+   "mille euro" -> 1000
+   "100 euro" -> 100
+   "centocinquanta euro e cinquanta" -> 150.50
+
+7. Non inventare informazioni non presenti.
+
+8. Il campo categoria deve essere esclusivamente uno di:
+   altro
+   lavoro
+   casa
+   finanze
+   personale
+
+9. Gemini NON deve decidere nessuna sezione del budget.
+
+10. Gemini NON deve creare movimenti del budget.
+
+11. Se la frase riguarda un promemoria, usa:
+    azione = "promemoria"
+
+12. Se la frase rappresenta un evento/scadenza concreta,
+    usa:
+    azione = "crea_evento"
+
+13. Per ora, se l'utente chiede una semplice nota,
+    usa:
+    azione = "nota"
+
+14. Restituisci ESCLUSIVAMENTE il JSON richiesto.
+`;
+
+
+    const userInput =
+        `${systemInstruction}
+
+Frase dell'utente:
+"${transcript}"`;
+
+
+    let lastError = null;
+
+
+    for (
+        const model of GEMINI_MODELS
+    ) {
+
+        try {
+
+            console.log(
+                "Provo Gemini model:",
+                model
+            );
+
+
+            const response =
+                await fetch(
+                    GEMINI_ENDPOINT,
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+
+                            "x-goog-api-key":
+                                GEMINI_API_KEY
+                        },
+
+                        body:
+                            JSON.stringify({
+
+                                model: model,
+
+                                input: userInput,
+
+                                store: false,
+
+                                /*
+                                 * Interactions API:
+                                 *
+                                 * type = text
+                                 * mime_type = application/json
+                                 * schema = JSON Schema
+                                 */
+
+                                response_format: {
+
+                                    type:
+                                        "text",
+
+                                    mime_type:
+                                        "application/json",
+
+                                    schema: {
+
+                                        type:
+                                            "object",
+
+                                        additionalProperties:
+                                            false,
+
+                                        properties: {
+
+                                            azione: {
+                                                type:
+                                                    "string",
+
+                                                enum: [
+                                                    "crea_evento",
+                                                    "promemoria",
+                                                    "nota"
+                                                ]
+                                            },
+
+                                            titolo: {
+                                                type:
+                                                    "string"
+                                            },
+
+                                            data: {
+                                                type:
+                                                    "string"
+                                            },
+
+                                            ora: {
+                                                type:
+                                                    [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                            },
+
+                                            importo: {
+                                                type:
+                                                    "number"
+                                            },
+
+                                            categoria: {
+                                                type:
+                                                    "string",
+
+                                                enum: [
+                                                    "altro",
+                                                    "lavoro",
+                                                    "casa",
+                                                    "finanze",
+                                                    "personale"
+                                                ]
+                                            },
+
+                                            nota: {
+                                                type:
+                                                    "string"
+                                            }
+                                        },
+
+                                        required: [
+                                            "azione",
+                                            "titolo",
+                                            "data",
+                                            "ora",
+                                            "importo",
+                                            "categoria",
+                                            "nota"
+                                        ]
+                                    }
+                                }
+                            })
+                    }
+                );
+
+
+            const responseText =
+                await response.text();
+
+
+            let data = null;
+
+
+            try {
+
+                data =
+                    JSON.parse(
+                        responseText
+                    );
+
+            } catch {
+
+                throw new Error(
+                    "Risposta Gemini non JSON. HTTP " +
+                    response.status +
+                    "\n\n" +
+                    responseText
+                );
+            }
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Gemini HTTP " +
+                    response.status +
+                    "\n\n" +
+                    (
+                        data?.error?.message ||
+                        responseText
+                    )
+                );
+            }
+
+
+            const text =
+                extractGeminiText(data);
+
+
+            if (!text) {
+
+                console.error(
+                    "Risposta Gemini completa:",
+                    data
+                );
+
+                throw new Error(
+                    "Gemini ha risposto ma non è stato trovato il testo JSON."
+                );
+            }
+
+
+            console.log(
+                "Risposta grezza Gemini:",
+                text
+            );
+
+
+            return parseGeminiJSON(text);
+
+
+        } catch (error) {
+
+            console.error(
+                "Errore con model",
+                model,
+                error
+            );
+
+            lastError = error;
+
+
+            const message =
+                String(
+                    error?.message || ""
+                );
+
+
+            const retryable =
+                message.includes("503") ||
+                message.includes("429") ||
+                message.includes("high demand") ||
+                message.includes("UNAVAILABLE");
+
+
+            if (!retryable) {
+                break;
+            }
+        }
+    }
+
+
+    throw lastError ||
+        new Error(
+            "Impossibile comunicare con Gemini."
+        );
+}
+
+
+/* =========================================================
+   GEMINI - ELABORAZIONE COMANDO VOCALE
+========================================================= */
+
+async function processVoiceCommand(
+    transcript
+) {
+
+    if (!transcript) {
+        return;
+    }
+
+
+    setAIStatus(
+        "🤖 Gemini sta interpretando...",
+        "processing"
+    );
+
+
+    try {
+
+        console.log(
+            "Invio a Gemini:",
+            transcript
+        );
+
+
+        const command =
+            await askGemini(
+                transcript
+            );
+
+
+        console.log(
+            "Comando Gemini:",
+            command
+        );
+
+
+        const action =
+            command.azione;
+
+
+        if (
+            action !== "crea_evento" &&
+            action !== "promemoria" &&
+            action !== "nota"
+        ) {
+
+            throw new Error(
+                "Tipo di comando non riconosciuto: " +
+                action
+            );
+        }
+
+
+        const created =
+            await createTaskFromAI(
+                command
+            );
+
+
+        const amountText =
+            Number(created.importo || 0) > 0
+                ? ` • ${euro(created.importo)}`
+                : "";
+
+
+        const timeText =
+            created.ora
+                ? ` alle ${created.ora.substring(0, 5)}`
+                : "";
+
+
+        setAIStatus(
+            `✓ ${created.titolo} — ${formatDateItalian(created.data)}${timeText}${amountText}`,
+            "success"
+        );
+
+
+        console.log(
+            "Impegno creato:",
+            created
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Errore elaborazione AI:",
+            error
+        );
+
+
+        setAIStatus(
+            "❌ " +
+            (
+                error?.message ||
+                "Errore Gemini."
+            ),
+            "error"
+        );
+
+
+        alert(
+            "Non sono riuscito a creare l'impegno.\n\n" +
+            (
+                error?.message ||
+                "Errore sconosciuto."
+            )
+        );
+    }
+}
+
+
+/* =========================================================
+   MODALE SEZIONE
+========================================================= */
+
+function openSectionModal() {
+
+    document
+        .getElementById("sectionModal")
+        .classList.add("open");
+
+
+    document
+        .getElementById("sectionName")
+        .focus();
+
+
+    clearSectionMessages();
+}
+
+
+function closeSectionModal() {
+
+    document
+        .getElementById("sectionModal")
+        .classList.remove("open");
+}
+
+
+function showSectionError(message) {
+
+    const box =
+        document.getElementById(
+            "sectionError"
+        );
+
+    box.textContent =
+        message;
+
+    box.classList.add(
+        "visible"
+    );
+}
+
+
+function showSectionSuccess(message) {
+
+    const box =
+        document.getElementById(
+            "sectionSuccess"
+        );
+
+    box.textContent =
+        message;
+
+    box.classList.add(
+        "visible"
+    );
+}
+
+
+function clearSectionMessages() {
+
+    document
+        .getElementById("sectionError")
+        .classList.remove(
+            "visible"
+        );
+
+    document
+        .getElementById("sectionSuccess")
+        .classList.remove(
+            "visible"
+        );
+}
+
+
+/* =========================================================
+   MODALE TASK
+========================================================= */
+
+function openTaskModal() {
+
+    document
+        .getElementById("taskModal")
+        .classList.add("open");
+
+
+    document
+        .getElementById("taskDate")
+        .value =
+            todayISO();
+
+
+    document
+        .getElementById("taskTitle")
+        .focus();
+
+
+    clearTaskError();
+}
+
+
+function closeTaskModal() {
+
+    document
+        .getElementById("taskModal")
+        .classList.remove("open");
+}
+
+
+function clearTaskError() {
+
+    document
+        .getElementById("taskError")
+        .classList.remove(
+            "visible"
+        );
+}
+
+
+function showTaskError(message) {
+
+    const box =
+        document.getElementById(
+            "taskError"
+        );
+
+    box.textContent =
+        message;
+
+    box.classList.add(
+        "visible"
+    );
+}
+
+
+/* =========================================================
+   VOCE
+========================================================= */
+
+const voiceButton =
+    document.getElementById(
+        "voiceButton"
+    );
+
+
+let recognition = null;
+
+
+if (
+    "webkitSpeechRecognition"
+    in window ||
+    "SpeechRecognition"
+    in window
+) {
+
+    const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+
+    recognition =
+        new SpeechRecognition();
+
+
+    recognition.lang =
+        "it-IT";
+
+    recognition.continuous =
+        false;
+
+    recognition.interimResults =
+        false;
+
+
+    recognition.onstart =
+        () => {
+
+            voiceButton.classList.add(
+                "recording"
+            );
+
+            setAIStatus(
+                "🎙️ Ti ascolto...",
+                "processing"
+            );
+        };
+
+
+    recognition.onend =
+        () => {
+
+            voiceButton.classList.remove(
+                "recording"
+            );
+
+        };
+
+
+    recognition.onerror =
+        error => {
+
+            voiceButton.classList.remove(
+                "recording"
+            );
+
+            console.error(
+                "Errore voce:",
+                error
+            );
+
+
+            if (
+                error.error ===
+                "no-speech"
+            ) {
+
+                setAIStatus(
+                    "Non ho sentito nulla. Riprova.",
+                    "error"
+                );
+
+            } else {
+
+                setAIStatus(
+                    "Errore microfono: " +
+                    error.error,
+                    "error"
+                );
+            }
+        };
+
+
+    recognition.onresult =
+        async event => {
+
+            const transcript =
+                event.results[0][0].transcript.trim();
+
+
+            console.log(
+                "Testo riconosciuto:",
+                transcript
+            );
+
+
+            if (!transcript) {
+
+                setAIStatus(
+                    "Non ho ricevuto testo.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            await processVoiceCommand(
+                transcript
+            );
+        };
+
+} else {
+
+    voiceButton.disabled =
+        true;
+
+    voiceButton.title =
+        "Il browser non supporta il riconoscimento vocale";
+
+    setAIStatus(
+        "Il browser non supporta il riconoscimento vocale.",
+        "error"
+    );
+}
+
+
+voiceButton.onclick =
+    () => {
+
+        if (!recognition) {
+
+            alert(
+                "Il browser non supporta il riconoscimento vocale."
+            );
+
+            return;
+        }
+
+
+        try {
+
+            recognition.start();
+
+        } catch (error) {
+
+            console.error(
+                error
+            );
+        }
+    };
+
+
+/* =========================================================
+   CHIUSURA MODALI CLIC FUORI
+========================================================= */
+
+document
+    .getElementById("sectionModal")
+    .addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target.id ===
+                "sectionModal"
+            ) {
+
+                closeSectionModal();
+
+            }
+
+        }
+    );
+
+
+document
+    .getElementById("taskModal")
+    .addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target.id ===
+                "taskModal"
+            ) {
+
+                closeTaskModal();
+
+            }
+
+        }
+    );
+
+
+/* =========================================================
+   AVVIO
+========================================================= */
+
+async function init() {
+
+    await testConnection();
+
+    await loadAllData();
+
+}
+
+
+document
+    .getElementById("budgetChoiceModal")
+    .addEventListener("click", event => {
+
+        if (
+            event.target.id ===
+            "budgetChoiceModal"
+        ) {
+            cancelBudgetSectionChoice();
+        }
+    });
+
+
+init();
+
+</script>
+
+</body>
+</html>
