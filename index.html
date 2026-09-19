@@ -866,9 +866,72 @@
 }
 </style>
 
+
+<style id="auth-styles">
+.auth-screen{
+    position:fixed; inset:0; z-index:10000; display:flex;
+    align-items:center; justify-content:center; padding:20px;
+    background:var(--bg,#0b0d10);
+}
+.auth-screen.hidden{display:none}
+.auth-card{
+    width:min(420px,100%); padding:24px; border:1px solid var(--border,#282d35);
+    border-radius:20px; background:var(--panel,#13161b);
+    box-shadow:0 24px 80px rgba(0,0,0,.35);
+}
+.auth-logo{font-size:25px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+.auth-sub{color:var(--muted,#8f98a6);font-size:13px;line-height:1.45;margin-bottom:20px}
+.auth-field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.auth-field label{font-size:11px;color:var(--muted,#8f98a6);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.auth-field input{
+    width:100%; padding:12px 13px; border-radius:10px;
+    border:1px solid var(--border,#282d35); background:var(--panel-2,#191d23);
+    color:var(--text,#f2f4f7); outline:none; font-size:14px;
+}
+.auth-field input:focus{border-color:var(--accent,#7c5cff)}
+.auth-button{
+    width:100%; margin-top:5px; padding:12px 14px; border:0; border-radius:10px;
+    background:var(--accent,#7c5cff); color:white; font-weight:800; cursor:pointer;
+}
+.auth-message{min-height:18px;margin-top:11px;font-size:12px;color:var(--muted,#8f98a6)}
+.auth-message.error{color:var(--red,#ff5c67)}
+.auth-message.success{color:var(--green,#35d07f)}
+.user-pill{display:flex;align-items:center;gap:7px;margin-left:10px}
+.user-email{font-size:10px;color:var(--muted,#8f98a6);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout-btn{
+    border:1px solid var(--border,#282d35); background:transparent;color:var(--muted,#8f98a6);
+    border-radius:8px;padding:5px 8px;font-size:10px;cursor:pointer
+}
+body.auth-pending .app{visibility:hidden}
+@media(max-width:600px){
+  .auth-card{padding:20px}
+  .user-email{display:none}
+}
+</style>
+
 </head>
 
-<body>
+<body class="auth-pending">
+
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">HOME ORGANIZER</div>
+    <div class="auth-sub">Accedi al tuo spazio personale. La sessione resta salvata su questo dispositivo.</div>
+    <form id="loginForm">
+      <div class="auth-field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" required>
+      </div>
+      <div class="auth-field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" required>
+      </div>
+      <button id="loginButton" class="auth-button" type="submit">Accedi</button>
+      <div id="authMessage" class="auth-message"></div>
+    </form>
+  </div>
+</div>
+
 
 <div class="portrait-lock" aria-live="polite">
     <div class="portrait-lock-card">
@@ -892,6 +955,10 @@
         <div class="connection">
             <span id="connectionDot" class="connection-dot"></span>
             <span id="connectionText">Connessione...</span>
+            <div id="userPill" class="user-pill" style="display:none">
+                <span id="userEmail" class="user-email"></span>
+                <button class="logout-btn" onclick="logoutUser()">Esci</button>
+            </div>
         </div>
     </header>
 
@@ -1297,9 +1364,93 @@ const SUPABASE_ANON_KEY =
 const supabaseClient =
     window.supabase.createClient(
         SUPABASE_URL,
-        SUPABASE_ANON_KEY
+        SUPABASE_ANON_KEY,
+        {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true
+            }
+        }
     );
 
+
+
+let currentUser = null;
+
+function currentUserId() {
+    return currentUser ? currentUser.id : null;
+}
+
+function showAuthScreen(message = "", type = "") {
+    const screen = document.getElementById("authScreen");
+    const msg = document.getElementById("authMessage");
+    screen.classList.remove("hidden");
+    document.body.classList.add("auth-pending");
+    msg.textContent = message;
+    msg.className = "auth-message" + (type ? " " + type : "");
+}
+
+function hideAuthScreen() {
+    document.getElementById("authScreen").classList.add("hidden");
+    document.body.classList.remove("auth-pending");
+}
+
+function renderLoggedUser() {
+    const pill = document.getElementById("userPill");
+    const email = document.getElementById("userEmail");
+    if (currentUser) {
+        email.textContent = currentUser.email || "Account";
+        pill.style.display = "flex";
+    } else {
+        pill.style.display = "none";
+    }
+}
+
+async function loginUser(email, password) {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+    });
+    if (error) throw error;
+    currentUser = data.user;
+    renderLoggedUser();
+    hideAuthScreen();
+    await testConnection();
+    await loadAllData();
+}
+
+async function logoutUser() {
+    await supabaseClient.auth.signOut();
+    currentUser = null;
+    commitments = [];
+    budgetSections = [];
+    budgetMovements = [];
+    renderLoggedUser();
+    showAuthScreen("Sessione chiusa.", "success");
+}
+
+document.getElementById("loginForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = document.getElementById("loginButton");
+    const message = document.getElementById("authMessage");
+    button.disabled = true;
+    button.textContent = "Accesso...";
+    message.textContent = "";
+    try {
+        await loginUser(
+            document.getElementById("loginEmail").value.trim(),
+            document.getElementById("loginPassword").value
+        );
+        document.getElementById("loginPassword").value = "";
+    } catch (error) {
+        message.textContent = "Accesso non riuscito: " + error.message;
+        message.className = "auth-message error";
+    } finally {
+        button.disabled = false;
+        button.textContent = "Accedi";
+    }
+});
 
 /* =========================================================
    GEMINI
@@ -1454,6 +1605,7 @@ async function testConnection() {
             await supabaseClient
                 .from("sezioni_budget")
                 .select("id")
+                .eq("user_id", currentUserId())
                 .limit(1);
 
         if (error) {
@@ -1508,6 +1660,7 @@ async function loadBudgetSections() {
         await supabaseClient
             .from("sezioni_budget")
             .select("*")
+            .eq("user_id", currentUserId())
             .order("creato_il", {
                 ascending: true
             });
@@ -1556,6 +1709,7 @@ async function createBudgetSection() {
             await supabaseClient
                 .from("sezioni_budget")
                 .insert({
+                    user_id: currentUserId(),
                     nome: name
                 })
                 .select()
@@ -1612,6 +1766,7 @@ async function loadBudgetMovements() {
         await supabaseClient
             .from("movimenti_budget")
             .select("*")
+            .eq("user_id", currentUserId())
             .order("data", {
                 ascending: false
             });
@@ -1640,6 +1795,7 @@ async function loadCommitments() {
         await supabaseClient
             .from("impegni")
             .select("*")
+            .eq("user_id", currentUserId())
             .order("data", {
                 ascending: true
             })
@@ -2649,6 +2805,7 @@ async function createTask() {
             await supabaseClient
                 .from("impegni")
                 .insert({
+                    user_id: currentUserId(),
                     titolo: title,
                     azione: "promemoria",
                     data: date,
@@ -2796,6 +2953,7 @@ async function createTaskFromAI(command) {
         await supabaseClient
             .from("impegni")
             .insert({
+                user_id: currentUserId(),
                 titolo: title,
                 azione: action,
                 data: date,
@@ -2888,7 +3046,8 @@ async function completeCommitment(item) {
                 .eq(
                     "id",
                     item.id
-                );
+                )
+                .eq("user_id", currentUserId());
 
 
         if (error) {
@@ -3030,6 +3189,7 @@ async function addBudgetMovement(
             await supabaseClient
                 .from("movimenti_budget")
                 .insert({
+                    user_id: currentUserId(),
                     sezione_id: section.id,
                     importo: amount,
                     descrizione: description,
@@ -4102,11 +4262,27 @@ document
 ========================================================= */
 
 async function init() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
 
-    await testConnection();
+    if (session && session.user) {
+        currentUser = session.user;
+        renderLoggedUser();
+        hideAuthScreen();
+        await testConnection();
+        await loadAllData();
+    } else {
+        currentUser = null;
+        renderLoggedUser();
+        showAuthScreen();
+    }
 
-    await loadAllData();
-
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_OUT" || !session) {
+            currentUser = null;
+            renderLoggedUser();
+            showAuthScreen();
+        }
+    });
 }
 
 
