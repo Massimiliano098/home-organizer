@@ -6,6 +6,15 @@
 
     <title>HOME ORGANIZER</title>
 
+    <!-- PWA -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0b0d10">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HOME ORGANIZER">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -761,10 +770,72 @@
                 font-size: 11px;
             }
         }
+
+        /* PWA: se il sistema/browser non rispetta il blocco landscape,
+           in verticale mostriamo un avviso e nascondiamo l'app. */
+        .portrait-lock {
+            display: none;
+        }
+
+        @media (orientation: portrait) and (max-width: 950px) {
+            .app {
+                display: none !important;
+            }
+
+            .portrait-lock {
+                position: fixed;
+                inset: 0;
+                z-index: 99999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 28px;
+                background: var(--bg);
+                color: var(--text);
+                text-align: center;
+            }
+
+            .portrait-lock-card {
+                max-width: 420px;
+                padding: 28px;
+                border: 1px solid var(--border);
+                border-radius: 18px;
+                background: var(--panel);
+            }
+
+            .portrait-lock-icon {
+                font-size: 52px;
+                margin-bottom: 14px;
+            }
+
+            .portrait-lock-title {
+                font-size: 22px;
+                font-weight: 700;
+                margin-bottom: 8px;
+            }
+
+            .portrait-lock-text {
+                color: var(--muted);
+                line-height: 1.5;
+                font-size: 14px;
+            }
+        }
+
     </style>
 </head>
 
 <body>
+
+<div class="portrait-lock" aria-live="polite">
+    <div class="portrait-lock-card">
+        <div class="portrait-lock-icon">↻</div>
+        <div class="portrait-lock-title">Ruota il dispositivo</div>
+        <div class="portrait-lock-text">
+            HOME ORGANIZER è progettato per essere utilizzato in orizzontale.
+        </div>
+    </div>
+</div>
+
 
 <div class="app">
 
@@ -4010,6 +4081,29 @@ document
 
 init();
 
+</script>
+
+
+<script>
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js")
+            .catch(error => console.warn("Service Worker:", error));
+    });
+}
+
+async function tryLandscapeLock() {
+    try {
+        if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock("landscape");
+        }
+    } catch (error) {
+        // Alcuni browser permettono il lock solo in specifici display mode.
+    }
+}
+
+window.addEventListener("load", tryLandscapeLock);
+window.addEventListener("click", tryLandscapeLock, { once: true });
 </script>
 
 </body>
